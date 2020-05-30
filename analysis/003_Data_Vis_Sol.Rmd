@@ -1,0 +1,232 @@
+---
+title: "Data Visualization Activity Solution"
+author: "Dr. Luis Malpica"
+date: "March, 2020"
+output:
+  pdf_document:
+    toc: yes
+  html_document:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+# Introduction
+You will look at one data set in base R.
+
+This is a basic data set that contain data on plant species. Explore the data set and produce the basic plots required using Base R and ggplot. 
+
+This famous (Fisher's or Anderson's) iris data set gives the measurements in centimeters of the variables sepal length and width and petal length and width, respectively, for 50 flowers from each of 3 species of iris. The species are Iris setosa, versicolor, and virginica.
+
+Collaboration and teamwork is encouraged!
+
+# Install required packages
+```{r, message=FALSE}
+# If you don't yet have tidyverse run:
+# install.packages("tidyverse")
+library(tidyverse)
+
+```
+
+#Load data: Remember to check if it loaded & if data types are correct
+```{r}
+# Since it is already in R's memory no need to load it, but you should explore it
+# You can just call it like this:
+
+#iris # No need to create object unless you want to and have it in memory
+iris <- iris
+
+# ------------------------------------------
+#STEP 1: Did it load correctly?
+head(iris) 
+
+# ------------------------------------------
+#STEP 2: Are the data types right?
+sapply(iris, class) 
+
+#appears fine
+
+# ------------------------------------------
+# STEP 3: Check for missing or impossible Petal.Lengths #
+
+range(iris$Sepal.Length) 
+plot(iris$Sepal.Length)
+
+range(iris$Sepal.Width)
+plot(iris$Sepal.Width)
+
+range(iris$Petal.Length) 
+plot(iris$Petal.Length)
+
+range(iris$Petal.Width) 
+plot(iris$Petal.Width)
+
+# Not a plant expert but nothing jumps out as wrong
+# Also nothing impossible
+
+# Step 4: Factor levels
+
+levels(iris$Species)
+# All seems to be OK!
+
+# Let's move on to plotting!
+
+```
+
+# Plot One Variable - Base
+```{r}
+# One variable, X = Discrete (Species)
+# Y can only be count of cases
+
+table(iris$Species)
+
+barplot(table(iris$Species))
+
+plot(table(iris$Species))
+
+# PLOT ONE VARIABLE 
+# Continuous X (Plot only one of the four in the dataset)
+
+# I decided to go with Sepal.Length but any will do
+plot(iris$Sepal.Length) 
+# No, this does not work
+
+hist(iris$Sepal.Length) 
+# Yes, this looks much better
+
+# We can chose different breaks or bins of data
+hist(iris$Sepal.Length, breaks=10)
+hist(iris$Sepal.Length, breaks=20)
+hist(iris$Sepal.Length, breaks=30)
+
+# Extract the hist function calculations
+histinfo <- hist(iris$Sepal.Length)
+histinfo
+
+# Making a point about data density... let's plot mean by Species
+# Remember some of dplyr functions
+temp <- iris %>%
+  group_by(Species) %>%
+  summarise(avg = mean(Sepal.Length))
+
+plot(temp$avg ~ temp$Species)
+# Does this one accurately represent the whole range of Petal.Lengths?
+
+# Which other function can help here?
+boxplot(iris$Sepal.Length ~ iris$Species)
+plot(iris$Sepal.Length ~ iris$Species)
+
+```
+
+# Plot One Variable - ggplot
+```{r}
+# Formulation and syntaxis is different
+
+ggplot(data = iris,
+       aes(Species)) +
+  geom_bar()
+
+#ggplot(data = DATA,
+#       aes(WHAT YOU WANT TO PLOT)) +
+#  GRAPHICAL ELEMENTS, ADDED ONE BY ONE LIKE LAYERS
+
+a <- ggplot(data = iris,
+       aes(Species)) +
+  geom_bar()
+
+print(a) #this is necessary when in the R interface
+a #this one also works in Rstudio
+
+# Demonstrate how things can be layered
+a <- ggplot(data = iris,
+            aes(Species))
+
+a #Here we just called the function and the discrete variable but have not assigned what will be plotted
+
+# ONE VARIABLE CONTINUOUS
+
+a <- ggplot(data=iris,
+            aes(Sepal.Length))
+# OK, we want to plot Sepal.Length
+
+a + geom_area(stat="bin") #warning just tells you that default 'bin=30'
+a + geom_density()
+a + geom_dotplot()#warning just tells you that default 'bin=30'
+a + geom_freqpoly()
+a + geom_histogram() #this one is like base 'hist()'
+
+#Let's follow the warning suggestion and explore different bin sizes
+a + geom_histogram(bins=10)
+a + geom_histogram(bins=20)
+a + geom_histogram(bins=30)
+a + geom_histogram(bins=40)
+
+a + geom_histogram(bins = 10) + coord_flip()
+#'coord_flip' flips the axis order
+
+```
+
+# Plot Two Variable - Base
+```{r}
+plot(Petal.Length ~ Sepal.Length, data=iris)
+
+plot(Sepal.Length ~ Petal.Length, data=iris)
+
+# Which is the correct one? Which story do you want to tell? 
+# Which one makes more sense?
+# Remember 'response' vs 'predictive' variables
+
+plot(Sepal.Length ~ Petal.Length, data=iris)
+# We can add lines representing linear model fits
+abline(lm(Sepal.Length~Petal.Length, data=iris))
+
+plot(Petal.Length ~ Sepal.Length, data=iris)
+abline(lm(Petal.Length ~ Sepal.Length, data=iris))
+# This won't work, it does not make sense variables in this order
+
+
+```
+
+# Plot Two Variable - ggplot
+```{r}
+# Continuous X, continuous Y
+
+a <- ggplot(data=iris, aes(x = Petal.Length, y = Sepal.Length))
+# The above creates an object where we store the 'base plot'
+a + geom_point() # This adds points as a scatterplot
+
+a <- ggplot(data=iris, aes(x = Petal.Length, y = Sepal.Length)) +
+  geom_point() +
+  geom_smooth(method="lm", level=0.5) # Then add a linear model fit
+
+a # Call to see how it looks
+
+?geom_smooth() # This one creates the linear model fit
+
+ggplot(data=iris, aes(x = Petal.Length, y = Sepal.Length)) +
+  geom_point() +
+  geom_smooth(span=100)
+# Loess smoothing is a process by which many statistical softwares do smoothing
+
+# -------------------------------
+# Discrete X, continuous Y
+
+# Recall in base plot this will return a boxplot
+plot(Sepal.Length ~ Species, data=iris)
+
+# In ggplot 'geom_boxplot()' would achieve this
+ggplot(data=iris, aes(x = Species, y = Sepal.Length)) +
+  geom_boxplot()
+
+# Adding datapoints may reveal some pattern not easy to see in a whiskerplot
+ggplot(data=iris, aes(x = Species, y = Sepal.Length)) +
+  geom_jitter() + # This prevents data points from overlapping
+  geom_boxplot(alpha=0.7)
+
+```
+
+
+
+
+

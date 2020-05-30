@@ -1,0 +1,166 @@
+---
+title: "Week 6, exercises"
+author: "Daniel Gonzalez-Suarez"
+date: "3/4/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+# Introduction
+Using "iris" database, we'll explore how to make plots in Base R and ggplot.
+
+# Install required packages
+Don't forget to load the packages you're going to use for this project.
+```{r, message=FALSE}
+library(tidyverse)
+
+```
+
+#Verification of data.
+We'll have to check ir everything's okay before starting to plot.
+```{r}
+# ------------------------------------------
+#STEP 1: Did it load correctly?
+head(iris)
+tail(iris)
+# ------------------------------------------
+#STEP 2: Are the data types right?
+str(iris)
+sapply(iris, class) 
+# ------------------------------------------
+# STEP 3: Check for missing or impossible Petal.Lengths #
+range(iris$Petal.Length)
+range(iris$Sepal.Length)
+range(iris$Sepal.Width)
+range(iris$Petal.Width)
+plot(iris)
+
+# ------------------------------------------
+# Step 4: Check factor levels
+levels(iris$Species)
+
+```
+
+# Plotting one variable with Base R
+```{r}
+# One variable, X = Discrete (Species)
+# Y can only be count of cases
+table(iris$Species)
+barplot(table(iris$Species))
+
+# Continuous X (Plot only one of the four in the dataset)
+plot(iris$Species, iris$Sepal.Length)
+plot(iris$Species, iris$Sepal.Width)
+plot(iris$Species, iris$Petal.Length)
+plot(iris$Species, iris$Petal.Width)
+     
+  
+# Using hist() 
+hist(iris$Sepal.Length, breaks = 4)
+hist(iris$Sepal.Length, breaks = 6)
+
+hist(iris$Sepal.Width, breaks = 3)
+hist(iris$Sepal.Width, breaks = 7)
+
+```
+
+# Let's use ggplot
+```{r}
+# One variable, X = Discrete (Species)
+# Y can only be count of cases
+
+ggplot(iris, aes(Species)) +
+  geom_bar()
+
+# Create an object to store the plot and add more layers latter 
+plot_sp <- ggplot(iris, aes(Species)) +
+  geom_bar() 
+
+# You can flip the axis order
+plot_sp + coord_flip()
+
+```
+
+# Plot Two Variable - Base
+
+```{r}
+# Continuous X, continuous Y
+
+
+# Remember these questions when preparing these plots:
+# Which is the correct one? Which story do you want to tell? Which one makes more sense? Depends on your question.
+plot(Petal.Length ~ Sepal.Length, data=iris)
+plot(Sepal.Length ~ Petal.Length, data=iris)
+
+# Try adding lines representing linear model fits
+plot(Sepal.Length ~ Petal.Length, data=iris)
+abline(lm(Sepal.Length~Petal.Length, data=iris))
+
+plot(Petal.Length ~ Sepal.Length, data=iris)
+abline(lm(Petal.Length ~ Sepal.Length, data=iris))
+
+
+# -------------------------------
+# Discrete X, continuous Y
+
+# Make a plot that most accurately represent the whole range of a continuous (Y) by species (X)
+plot(Petal.Length ~ Species, data=iris)
+plot(Petal.Width ~ Species, data=iris)
+plot(Sepal.Length ~ Species, data=iris)
+plot(Sepal.Width ~ Species, data=iris)
+
+```
+
+# Plot Two Variable - ggplot
+```{r}
+# Continuous X, continuous Y
+# Explore different plots interchanging the 'predictive' and 'response' variables among the four available
+plotSLPW <- ggplot(iris, aes(Sepal.Length, Petal.Width)) + 
+  geom_point()
+
+plotSLSW <- ggplot(iris, aes(Sepal.Length, Sepal.Width)) + 
+  geom_point()
+
+plotPLSW <- ggplot(iris, aes(Petal.Length, Sepal.Width)) + 
+  geom_point()
+
+plotPLPW <- ggplot(iris, aes(Petal.Length, Petal.Width)) + 
+  geom_point()
+
+plotSLPW 
+plotSLSW 
+plotPLSW 
+plotPLPW 
+
+# Try adding lines representing different trend lines to help you explore patterns
+# Add a linear model fit to your plots
+
+plotSLPW + geom_smooth(method = "lm")
+plotSLSW + geom_smooth(method = "lm")
+plotPLSW + geom_smooth(method = "lm")
+plotPLPW + geom_smooth(method = "lm")
+
+# Add a 'Loess smoothing' fit to your plots
+plotSLPW + geom_smooth(method = "loess")
+plotSLSW + geom_smooth(method = "loess")
+plotPLSW + geom_smooth(method = "loess")
+plotPLPW + geom_smooth(method = "loess")
+
+# -------------------------------
+# Discrete X, continuous Y
+
+# Make a plot that most accurately represent the whole range of a continuous (Y) by species (X)
+plot_sp <- ggplot(iris, aes(Species, Sepal.Length)) +
+  geom_boxplot()
+
+
+# Try adding datapoints to this plot to reveal patterns not easy to see in a whiskerplot
+plot_sp + 
+  geom_boxplot(alpha=0.69) +
+  geom_jitter()
+
+
+```
+
+

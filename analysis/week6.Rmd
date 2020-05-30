@@ -1,0 +1,525 @@
+<<<<<<< HEAD
+---
+title: "Week 6"
+author: "Daniel Gonzalez-Suarez"
+date: "3/3/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+# Introduction
+Here we will explore how to create basic plots in R. To acknowledge my forebears, much of the material on this week's class is based on a course in R by Dr. Brett Favaro.
+
+Read the file WhitefishLS.csv into R
+ These data are derived from Derek Ogle's FSA data resources:
+  http://derekogle.com/fishR/data/data-html/WhitefishLS.html
+
+>>> Whitefish example, Variables are:
+year: Year of catch.
+state: State of catch (MI, MN, or WI).
+catch: Catch in lbs.
+value: Value of catch in dollars.
+
+# Install required packages
+```{r, message=FALSE}
+# If you don't yet have tidyverse run:
+# install.packages("tidyverse")
+library(tidyverse)
+
+# We will require this package to handle some dates in this dataset
+# install.packages("lubridate")
+library(lubridate)
+
+```
+
+#Load data: Remember to check if it loaded & if data types are correct
+```{r}
+whitefish <- read.csv("./data/WhitefishLS.csv")
+
+# ------------------------------------------
+#STEP 1: Did it load correctly?
+  head(whitefish) 
+
+# ------------------------------------------
+#STEP 2: Are the data types right?
+  sapply(whitefish, class) 
+
+#appears fine, except we have a date-type variable here.
+
+# We will use the lubridate::date_decimal
+# It tells R this is a date not a number
+whitefish$year <- date_decimal(whitefish$year)
+
+sapply(whitefish, class) 
+# We will explore some other functions of lubridate later
+
+# ------------------------------------------
+# STEP 3: Check for missing or impossible values
+
+range(whitefish$year) #It now lines up with http://derekogle.com/fishR/data/data-html/WhitefishLS.html
+
+range(whitefish$catch) #nothing jumps out as wrong. I guess it's a big fishery
+plot(whitefish$catch)
+
+
+range(whitefish$value) #nothing impossible
+plot(whitefish$value)
+
+# ------------------------------------------
+# STEP 4: Factor levels
+
+levels(whitefish$state)
+# All seems to be OK!
+
+# Let's move on to plotting!
+
+```
+
+# Plot One Variable - Base
+```{r}
+plot(whitefish$catch ~ whitefish$state)
+
+# One variable, X = Discrete (states)
+# Y can only be count (catch)
+
+table(whitefish$state)
+
+#Here 'table' creates a contingency table of the counts of each factor in a specific variable, in this case the number of times a state is mentioned
+?table
+
+barplot(table(whitefish$state))
+
+plot(table(whitefish$state))
+
+# PLOT ONE VARIABLE
+# Continuous X
+
+plot(whitefish$catch) 
+# No, this does not work
+
+hist(whitefish$catch) 
+# Yes, this looks much better
+
+?hist
+
+# We can chose different breaks or bins of data
+hist(whitefish$catch, breaks=10)
+hist(whitefish$catch, breaks=20)
+hist(whitefish$catch, breaks=30)
+
+# Or assign them mannually
+hist(whitefish$catch, breaks=c(0,500000,1000000,1500000, 2000000))
+hist(whitefish$catch, breaks=c(0,100000,200000,300000,400000,500000,1000000,1500000,2000000))
+
+# Many calculations are conducted by the hist function prior to plotting
+# and you can extract those values
+histinfo <- hist(whitefish$catch)
+
+histinfo
+
+# Making a point about data density... let's plot mean by state
+# Remember some of dplyr functions
+temp <- whitefish %>%
+  group_by(state) %>%
+  summarise(avg = mean(catch))
+
+plot(temp$avg ~ temp$state)
+# It is nice to have average values, but they can mislead interpretation
+# of results
+
+# Perhaps it is better to have range of values on this one
+# This can be easily achieved with boxplot
+boxplot(whitefish$catch ~ whitefish$state)
+# When you plot a Discrete X and continuous Y variable plot will return 
+# a boxplot by default
+plot(whitefish$catch ~ whitefish$state)
+
+```
+
+# Plot One Variable - ggplot
+```{r}
+# Formulation and syntaxis is different
+
+ggplot(data = whitefish,
+       aes(state))  +
+  geom_bar()
+
+#ggplot(data = DATA,
+#       aes(WHAT YOU WANT TO PLOT)) +
+#  GRAPHICAL ELEMENTS, ADDED ONE BY ONE LIKE LAYERS
+
+a <- ggplot(data = whitefish,
+       aes(state)) +
+  geom_bar()
+
+print(a) #this is necessary when in the R interface
+a #this one also works in Rstudio
+
+# Demonstrate how things can be layered
+a <- ggplot(data = whitefish,
+            aes(state))
+
+a #Here we just called the function and the discrete variable but have not assigned what will be plotted
+
+# ONE VARIABLE CONTINUOUS
+
+a <- ggplot(data=whitefish,
+            aes(catch))
+# OK, we want to plot catch values
+
+a + geom_area(stat="bin") #warning just tells you that default 'bin=30'
+a + geom_density()
+a + geom_dotplot()#warning just tells you that default 'bin=30'
+a + geom_freqpoly()
+a + geom_histogram() #this one is like base 'hist()'
+
+
+#Let's follow the warning suggestion and explore different bin sizes
+a + geom_histogram(bins=10)
+a + geom_histogram(bins=20)
+a + geom_histogram(bins=30)
+a + geom_histogram(bins=40) 
+
+a + geom_histogram(bins = 10) + coord_flip()
+#'coord_flip' flips the axis order
+
+```
+
+# Plot Two Variable - Base
+```{r}
+plot(value ~ catch, data=whitefish)
+
+plot(catch ~ value, data=whitefish)
+
+# Which is the correct one? Which story do you want to tell? 
+# Which one makes more sense?
+# Remember 'response' vs 'predictive' variables
+
+plot(catch ~ year, data=whitefish)
+# We can add lines representing linear model fits
+abline(lm(catch~year, data=whitefish))
+
+plot(year ~ catch, data=whitefish)
+abline(lm(catch~year, data=whitefish))
+# This won't work, it does not make sense variables in this order
+
+
+```
+
+# Plot Two Variable - ggplot
+```{r}
+# Continuous X, continuous Y
+
+a <- ggplot(data=whitefish, aes(x = year, y = catch))
+# The above creates an object where we store the 'base plot'
+a + geom_point() # This adds points as a scatterplot
+
+a <- ggplot(data=whitefish, aes(x = year, y = catch)) +
+  geom_point() +
+  geom_smooth(method="lm", level=0.95) # Then add a linear model fit
+
+a # Call to see how it looks
+
+?geom_smooth() # This one creates the linear model fit
+
+ggplot(data=whitefish, aes(x = year, y = catch)) +
+  geom_point() +
+  geom_smooth(span=100) 
+
+# Loess smoothing is a process by which many statistical softwares do smoothing
+
+# -------------------------------
+# Discrete X, continuous Y
+
+# Recall in base plot this will return a boxplot
+plot(catch ~ state, data=whitefish)
+
+# In ggplot 'geom_boxplot()' would achieve this
+ggplot(data=whitefish, aes(x = state, y = catch)) +
+  geom_boxplot()
+
+# Adding datapoints may reveal some pattern not easy to see in a whiskerplot
+ggplot(data=whitefish, aes(x = state, y = catch)) +
+  geom_jitter() + # This prevents data points from overlapping
+  geom_boxplot(alpha=0.7)
+
+a <- ggplot(data=whitefish, aes(x = state, y = catch))
+
+a + geom_boxplot()
+
+
+# -------------------------------
+# Discrete X vs. discrete Y
+
+whitefish <- whitefish %>%
+  mutate(BigState = ifelse(state=="MI", "Y", "N"))
+
+
+ggplot(data=whitefish, aes(x=state, y = BigState)) +
+  geom_count()
+
+
+```
+=======
+---
+title: "Week 6"
+author: "Daniel Gonzalez-Suarez"
+date: "3/3/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+# Introduction
+Here we will explore how to create basic plots in R. To acknowledge my forebears, much of the material on this week's class is based on a course in R by Dr. Brett Favaro.
+
+Read the file WhitefishLS.csv into R
+ These data are derived from Derek Ogle's FSA data resources:
+  http://derekogle.com/fishR/data/data-html/WhitefishLS.html
+
+>>> Whitefish example, Variables are:
+year: Year of catch.
+state: State of catch (MI, MN, or WI).
+catch: Catch in lbs.
+value: Value of catch in dollars.
+
+# Install required packages
+```{r, message=FALSE}
+# If you don't yet have tidyverse run:
+# install.packages("tidyverse")
+library(tidyverse)
+
+# We will require this package to handle some dates in this dataset
+# install.packages("lubridate")
+library(lubridate)
+
+```
+
+#Load data: Remember to check if it loaded & if data types are correct
+```{r}
+whitefish <- read.csv("./data/WhitefishLS.csv")
+
+# ------------------------------------------
+#STEP 1: Did it load correctly?
+  head(whitefish) 
+
+# ------------------------------------------
+#STEP 2: Are the data types right?
+  sapply(whitefish, class) 
+
+#appears fine, except we have a date-type variable here.
+
+# We will use the lubridate::date_decimal
+# It tells R this is a date not a number
+whitefish$year <- date_decimal(whitefish$year)
+
+sapply(whitefish, class) 
+# We will explore some other functions of lubridate later
+
+# ------------------------------------------
+# STEP 3: Check for missing or impossible values
+
+range(whitefish$year) #It now lines up with http://derekogle.com/fishR/data/data-html/WhitefishLS.html
+
+range(whitefish$catch) #nothing jumps out as wrong. I guess it's a big fishery
+plot(whitefish$catch)
+
+
+range(whitefish$value) #nothing impossible
+plot(whitefish$value)
+
+# ------------------------------------------
+# STEP 4: Factor levels
+
+levels(whitefish$state)
+# All seems to be OK!
+
+# Let's move on to plotting!
+
+```
+
+# Plot One Variable - Base
+```{r}
+plot(whitefish$catch ~ whitefish$state)
+
+# One variable, X = Discrete (states)
+# Y can only be count (catch)
+
+table(whitefish$state)
+
+#Here 'table' creates a contingency table of the counts of each factor in a specific variable, in this case the number of times a state is mentioned
+?table
+
+barplot(table(whitefish$state))
+
+plot(table(whitefish$state))
+
+# PLOT ONE VARIABLE
+# Continuous X
+
+plot(whitefish$catch) 
+# No, this does not work
+
+hist(whitefish$catch) 
+# Yes, this looks much better
+
+?hist
+
+# We can chose different breaks or bins of data
+hist(whitefish$catch, breaks=10)
+hist(whitefish$catch, breaks=20)
+hist(whitefish$catch, breaks=30)
+
+# Or assign them mannually
+hist(whitefish$catch, breaks=c(0,500000,1000000,1500000, 2000000))
+hist(whitefish$catch, breaks=c(0,100000,200000,300000,400000,500000,1000000,1500000,2000000))
+
+# Many calculations are conducted by the hist function prior to plotting
+# and you can extract those values
+histinfo <- hist(whitefish$catch)
+
+histinfo
+
+# Making a point about data density... let's plot mean by state
+# Remember some of dplyr functions
+temp <- whitefish %>%
+  group_by(state) %>%
+  summarise(avg = mean(catch))
+
+plot(temp$avg ~ temp$state)
+# It is nice to have average values, but they can mislead interpretation
+# of results
+
+# Perhaps it is better to have range of values on this one
+# This can be easily achieved with boxplot
+boxplot(whitefish$catch ~ whitefish$state)
+# When you plot a Discrete X and continuous Y variable plot will return 
+# a boxplot by default
+plot(whitefish$catch ~ whitefish$state)
+
+```
+
+# Plot One Variable - ggplot
+```{r}
+# Formulation and syntaxis is different
+
+ggplot(data = whitefish,
+       aes(state))  +
+  geom_bar()
+
+#ggplot(data = DATA,
+#       aes(WHAT YOU WANT TO PLOT)) +
+#  GRAPHICAL ELEMENTS, ADDED ONE BY ONE LIKE LAYERS
+
+a <- ggplot(data = whitefish,
+       aes(state)) +
+  geom_bar()
+
+print(a) #this is necessary when in the R interface
+a #this one also works in Rstudio
+
+# Demonstrate how things can be layered
+a <- ggplot(data = whitefish,
+            aes(state))
+
+a #Here we just called the function and the discrete variable but have not assigned what will be plotted
+
+# ONE VARIABLE CONTINUOUS
+
+a <- ggplot(data=whitefish,
+            aes(catch))
+# OK, we want to plot catch values
+
+a + geom_area(stat="bin") #warning just tells you that default 'bin=30'
+a + geom_density()
+a + geom_dotplot()#warning just tells you that default 'bin=30'
+a + geom_freqpoly()
+a + geom_histogram() #this one is like base 'hist()'
+
+
+#Let's follow the warning suggestion and explore different bin sizes
+a + geom_histogram(bins=10)
+a + geom_histogram(bins=20)
+a + geom_histogram(bins=30)
+a + geom_histogram(bins=40) 
+
+a + geom_histogram(bins = 10) + coord_flip()
+#'coord_flip' flips the axis order
+
+```
+
+# Plot Two Variable - Base
+```{r}
+plot(value ~ catch, data=whitefish)
+
+plot(catch ~ value, data=whitefish)
+
+# Which is the correct one? Which story do you want to tell? 
+# Which one makes more sense?
+# Remember 'response' vs 'predictive' variables
+
+plot(catch ~ year, data=whitefish)
+# We can add lines representing linear model fits
+abline(lm(catch~year, data=whitefish))
+
+plot(year ~ catch, data=whitefish)
+abline(lm(catch~year, data=whitefish))
+# This won't work, it does not make sense variables in this order
+
+
+```
+
+# Plot Two Variable - ggplot
+```{r}
+# Continuous X, continuous Y
+
+a <- ggplot(data=whitefish, aes(x = year, y = catch))
+# The above creates an object where we store the 'base plot'
+a + geom_point() # This adds points as a scatterplot
+
+a <- ggplot(data=whitefish, aes(x = year, y = catch)) +
+  geom_point() +
+  geom_smooth(method="lm", level=0.95) # Then add a linear model fit
+
+a # Call to see how it looks
+
+?geom_smooth() # This one creates the linear model fit
+
+ggplot(data=whitefish, aes(x = year, y = catch)) +
+  geom_point() +
+  geom_smooth(span=100) 
+
+# Loess smoothing is a process by which many statistical softwares do smoothing
+
+# -------------------------------
+# Discrete X, continuous Y
+
+# Recall in base plot this will return a boxplot
+plot(catch ~ state, data=whitefish)
+
+# In ggplot 'geom_boxplot()' would achieve this
+ggplot(data=whitefish, aes(x = state, y = catch)) +
+  geom_boxplot()
+
+# Adding datapoints may reveal some pattern not easy to see in a whiskerplot
+ggplot(data=whitefish, aes(x = state, y = catch)) +
+  geom_jitter() + # This prevents data points from overlapping
+  geom_boxplot(alpha=0.7)
+
+a <- ggplot(data=whitefish, aes(x = state, y = catch))
+
+a + geom_boxplot()
+
+
+# -------------------------------
+# Discrete X vs. discrete Y
+
+whitefish <- whitefish %>%
+  mutate(BigState = ifelse(state=="MI", "Y", "N"))
+
+
+ggplot(data=whitefish, aes(x=state, y = BigState)) +
+  geom_count()
+
+
+```
+>>>>>>> Practice
